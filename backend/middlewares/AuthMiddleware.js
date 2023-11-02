@@ -15,10 +15,9 @@
             });
          }
          
-
+//if verified successfull we get payload completely who is logging in
          if(verified){
-          req.locals = verified;
-           
+          req.locals = verified; //saving user data at locals and every request has separate locals
             next()
          }
          else{

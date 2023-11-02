@@ -1,25 +1,26 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+
 const BlogSchema = new Schema({
     title:{
         type:String,
-        required:true,
+        require:true,
     },
     textBody:{
         type:String,
-        required:true,
+        require:true,
     },
     creationDateTime:{
         type:Date,
-        required:true,
+        require:true,
     },
     userId :{
-        type: Schema.Types.ObjectId,
-        required:true,
+        type: String,
+        require:true,
     },
     username:{
         type:String,
-        required:true,
+        require:true,
     }
 })
 

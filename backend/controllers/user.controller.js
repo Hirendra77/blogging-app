@@ -1,22 +1,16 @@
 const bcrypt = require("bcrypt");
 const Joi = require("joi");
-const { TRUE, ERR } = require("../constants");
-const jwt = require("jsonwebtoken");
-const {
-  verifyUsernameAndEmailExists,
-} = require("../utils/verifyEmailUsername");
-const User = require("../models/User");
-const {
-  addUserToDB,
-  getUserDataFromUsername,
-  getUserDataFromEmail,
-} = require("../repository/user.repository");
 
+const jwt = require("jsonwebtoken");
+
+const User = require("../models/User")
 const BCRYPT_SALTS = Number(process.env.BCRYPT_SALTS);
 
 // Post-- Register User
+
 const registerUser = async (req, res) => {
   //  Data validation
+
   const isValid = Joi.object({
     name: Joi.string().required(),
     username: Joi.string().min(3).max(30).alphanum().required(),
@@ -32,83 +26,92 @@ const registerUser = async (req, res) => {
   }
 
   // checking EdegeCase whether we have any username or email already existing in our DB
-  const isUserExisting = await verifyUsernameAndEmailExists(
-    req.body.email,
-    req.body.username
-  );
-  console.log(isUserExisting);
+ 
 
-  if (isUserExisting === TRUE) {
+  try{
+    const userExists = await User.find({$or:[{email:req.body.email},{username:req.body.username}]});
+       console.log(userExists)
+  if(userExists.length != 0){
     return res.status(400).send({
-      status: 400,
-      message: "Email or Username already exists",
-    });
-  } else if (isUserExisting === ERR) {
-    return res.status(400).send({
-      status: 400,
-      message: "ERR: verifyUsernameAndEmailExists failed !",
+      status:400,
+      message:"username/email already exists",
     });
   }
+  }
+  catch(err){
+    return res.status(400).send({
+      status:400,
+      message:"Error while checking username and email exists",
+      data:err,
+    })
+  }
+
   const hashedPassword = await bcrypt.hash(req.body.password, BCRYPT_SALTS);
 
-  const userObj = new User({
+    const userObj = new User({
     name: req.body.name,
     username: req.body.username,
     email: req.body.email,
     password: hashedPassword,
   });
-  // Adding userdata to data base
-  const response = await addUserToDB(userObj);
 
-  if (response === ERR) {
-    res.status(400).send({
-      status: 400,
-      message: "DB Error: Failed to add new user",
-    });
-  } else if (response === TRUE) {
-    res.status(201).send({
-      status: 201,
-      message: "User added successfully",
-    });
+  try{
+  await userObj.save();
+  return res.status(201).send({
+    status:201,
+    message:"User registered successfully",
+  });
   }
-};
+  catch(err){
+    return res.status(400).send({
+      status:400,
+      message:"Error while save user to DB",
+      data:err,
+  })
+  }
+}
+  
 
 const loginUser = async (req, res) => {
-  const { loginId, password } = req.body;
 
-  const isEmail = Joi.object({
-    loginId: Joi.string().email().required(),
-  }).validate({loginId});
+  const {username, password} = req.body;
 
-  let userData;
-  if (isEmail.error) {
-    userData = await getUserDataFromUsername(loginId);
-    if (userData.err) {
-      return res.status(400).send({
-        status: 400,
-        message: "DB Error: getUserDataFromUsername Failed",
-        data: userData.err,
-      });
-    }
-  } else {
-    userData = await getUserDataFromEmail(loginId);
-    if (userData.err) {
-      return res.status(400).send({
-        status: 400,
-        message: "DB Error: getUserDataFromUsername Failed",
-        data: userData.err,
-      });
-    }
-  }
-  if (!userData.data) {
-    return res.status(400).send({
+  const isValid = Joi.object({
+    username:Joi.string().required(),
+    password:Joi.string().required(),
+  }).validate(req.body)
+
+  if (isValid.error) {
+    res.status(400).send({
       status: 400,
-      message: "No user found! Please register",
+      message: "Invalid Username/password",
+      data: isValid.error,
     });
   }
-  const isPasswordMatching = await bcrypt.compare(
+
+  let userData;
+try{
+  userData = await User.findOne({username})
+
+if(!userData){
+  return res.status(400).send({
+    status:400,
+    message:"No user found! Please register",
+})
+}
+
+}
+catch(err){
+  return res.status(400).send({
+    status:400,
+    message:"Error while fetching user data",
+    data:err,
+})
+}
+
+const isPasswordMatching = await bcrypt.compare(
     password,
-    userData.data.password
+    userData.password
   );
   if (!isPasswordMatching) {
     return res.status(400).send({
@@ -117,20 +120,20 @@ const loginUser = async (req, res) => {
     });
   }
 
-  const payload = {
-    userData: userData.data.username,
-    name: userData.data.name,
-    email: userData.data.email,
-    userId: userData.data._id,
-  };
-  const token = await jwt.sign(payload, process.env.JWT_SECRET);
-  res.status(200).send({
-    status: 200,
-    message: "Loggedin successfully",
-    data: {
-      token,
-    },
-  });
+   const payload = {
+      username: userData.username,
+      name: userData.name,
+      email: userData.email,
+      userId: userData._id,
+    };
+    const token =  jwt.sign(payload, process.env.JWT_SECRET);
+    return res.status(200).send({
+      status: 200,
+      message: "Logged in successfully",
+      data: {token},
+    });
+
+  
 };
 
 module.exports = { registerUser, loginUser };

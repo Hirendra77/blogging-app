@@ -2,13 +2,13 @@ const express = require("express");
 require("dotenv").config();
 
 const app = express();
-const PORT = 8081;
+const PORT = 8049;
 
 //file imports
 const db = require("./config/db"); 
 const userRoutes = require("./routes/user");
 const blogRoutes = require("./routes/blog");
-const { isAuth } = require("./middlewares/AuthMiddleware");
+
 
 // middleware
 app.use(express.json());
