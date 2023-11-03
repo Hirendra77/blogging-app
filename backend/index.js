@@ -2,7 +2,7 @@ const express = require("express");
 require("dotenv").config();
 
 const app = express();
-const PORT = 8049;
+const PORT = 9560;
 
 //file imports
 const db = require("./config/db"); 
