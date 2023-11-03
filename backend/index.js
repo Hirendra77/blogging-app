@@ -1,8 +1,6 @@
 const express = require("express");
 require("dotenv").config();
-
-const app = express();
-const PORT = 9560;
+const cors = require("cors");
 
 //file imports
 const db = require("./config/db"); 
@@ -12,8 +10,14 @@ const followRoutes = require("./routes/follow");
 const { cleanUpBin } = require("./utils/cron");
 
 
+const app = express();
+const PORT = 9560;
+
 // middleware
 app.use(express.json());
+app.use(cors({
+        origin:"*",
+}))
 // app.use(isAuth);
 
 // Routes
