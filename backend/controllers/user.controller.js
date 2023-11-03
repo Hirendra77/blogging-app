@@ -132,8 +132,42 @@ const isPasswordMatching = await bcrypt.compare(
       message: "Logged in successfully",
       data: {token},
     });
-
-  
 };
+const getAllUsers =async (req,res)=>{
+  const userId = req.locals.userId;
+  let userData ;
+  try{
+    userData = await User.find({_id:{$ne:userId}});
+    if(!userData){
+      return res.status(400).send({
+        status: 400,
+        message: "Failed to fetch all users",
+     
+      });
+    }
+  }
+  catch(err){
+    return res.status(400).send({
+      status: 400,
+      message: "Failed to fetch all users",
+      data: err,
+    });
+  }
+  let userList =[]
+  userData.map((user)=>{
+    let userObj = {
+      name:user.name,
+      username:user.username,
+      email:user.email,
+      _id:user._id,
+    }
+    userList.push(userObj);
+  });
+  return res.status(200).send({
+    status:200,
+    message:"All users fetched successfully",
+    data:userList,
+  })
+}
 
-module.exports = { registerUser, loginUser };
+module.exports = { registerUser, loginUser, getAllUsers };

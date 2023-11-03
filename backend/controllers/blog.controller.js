@@ -211,7 +211,7 @@ const getHomePageBlogs = async (req,res)=>{
 
   let followingList;
   try{
-   followingList= Follow.find({followerUserId})
+   followingList= await Follow.find({followerUserId})
    if(followingList.length === 0){
       return res.status(400).send({
          status:400,
