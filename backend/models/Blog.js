@@ -21,6 +21,16 @@ const BlogSchema = new Schema({
     username:{
         type:String,
         require:true,
+    },
+    isDeleted:{
+        type:Boolean,
+        default:false,
+        require:false,
+    },
+    deletionDateTime:{
+        type:Date,
+        require:false,
+
     }
 })
 

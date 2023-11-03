@@ -52,7 +52,7 @@ const LIMIT = 10;
 
 let blogData;
 try{
- blogData = await Blog.find({userId})
+ blogData = await Blog.find({userId, isDeleted:false})
  .sort({creationDateTime: -1})
  .skip((page-1)*LIMIT)
  .limit(LIMIT);
@@ -104,7 +104,11 @@ catch(err){
 }
 
 try{
-await Blog.findByIdAndDelete(blogId);
+// await Blog.findByIdAndDelete(blogId);
+const blogObj = {
+   isDeleted:true,
+   deletionDateTime: Date.now()}
+await Blog.findByIdAndUpdate(blogId, blogObj)
 return res.status(200).send({
    status:200,
    message:"Blog Deleted Successfully ",
@@ -198,7 +202,58 @@ catch(err){
       data:err,
     });
 }
-
 };
 
-module.exports = { createBlog,getUserBlogs,deleteBlog,editBlog };
+// Homepage
+
+const getHomePageBlogs = async (req,res)=>{
+  const followerUserId = req.locals.userid;
+
+  let followingList;
+  try{
+   followingList= Follow.find({followerUserId})
+   if(followingList.length === 0){
+      return res.status(400).send({
+         status:400,
+         message:"Follow Users to display blogs",
+         data:err,
+       });
+   }
+  }
+  catch(err){
+   return res.status(400).send({
+      status:400,
+      message:"Failed to fetch following users list",
+      data:err,
+    });
+  }
+
+  let followingUserIds =[]
+  followingList.forEach((followObj)=>{
+   followingUserIds.push(followObj.followingUserId);
+  });
+
+
+
+  try{
+   const homepageBlogs = await Blog.find({
+      userId:{$in: followingUserIds},
+      isDeleted:false,
+   }).sort({creationDateTime:-1}); 
+
+   return res.status(200).send({
+      status:200,
+      message:"Fetched homepage blogs successfully",
+      data :homepageBlogs
+    });
+  }
+  catch(err){
+   return res.status(400).send({
+      status:400,
+      message:"Failed to fetch homepage blogs",
+      data:err,
+    });
+  }
+} 
+
+module.exports = { createBlog,getUserBlogs,deleteBlog,editBlog, getHomePageBlogs };
