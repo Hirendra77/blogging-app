@@ -2,8 +2,11 @@ const bcrypt = require("bcrypt");
 const Joi = require("joi");
 
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose")
+const ObjectId = mongoose.Types.ObjectId;
 
-const User = require("../models/User")
+const User = require("../models/User");
+const Follow = require("../models/Follow");
 const BCRYPT_SALTS = Number(process.env.BCRYPT_SALTS);
 
 // Post-- Register User
@@ -109,7 +112,7 @@ catch(err){
 })
 }
 
-const isPasswordMatching = await bcrypt.compare(
+const isPasswordMatching = bcrypt.compare(
     password,
     userData.password
   );
@@ -153,16 +156,53 @@ const getAllUsers =async (req,res)=>{
       data: err,
     });
   }
+
+  let followingList;
+  try{
+    followingList= await Follow.find({followerUserId:userId})
+  
+  }
+  catch(err){
+   return res.status(400).send({
+      status:400,
+      message:"Failed to fetch following users list",
+      data:err,
+    });
+  }
+
+  // console.log(followingList)
+
   let userList =[]
-  userData.map((user)=>{
+
+  let followingMap = new Map()
+
+followingList.forEach((user)=>{
+  followingMap.set(user.followingUserId,true)
+})
+
+userData.forEach((user)=>{
+  if(followingMap.get((user._id.toString()))){
     let userObj = {
       name:user.name,
       username:user.username,
       email:user.email,
       _id:user._id,
-    }
+      follow:true,
+    };
     userList.push(userObj);
-  });
+  }
+  else{
+    let userObj = {
+      name:user.name,
+      username:user.username,
+      email:user.email,
+      _id:user._id,
+      follow:false,
+    };
+  }
+})
+
+
   return res.status(200).send({
     status:200,
     message:"All users fetched successfully",
